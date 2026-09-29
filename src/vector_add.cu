@@ -4,18 +4,18 @@
 #include <cstdio>
 #include <vector>
 
+void checkCuda(cudaError_t error, const char* message){
+    // error function: takes the result of a CUDA API call and prints a error message if failed.
+    if (error != cudaSuccess){
+        printf("%s: %s\n", message, cudaGetErrorString(error));
+    }
+}
+
 __global__ void vectorAdd(const int* a, const int* b, int* c, int N){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (i < N){
         c[i] = a[i] + b[i];
-    }
-}
-
-void checkCuda(cudaError_t error, const char* message){
-    // error function: takes the result of a CUDA API call and prints a error message if failed.
-    if (error != cudaSuccess){
-        printf("%s: %s\n", message, cudaGetErrorString(error));
     }
 }
 
