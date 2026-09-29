@@ -20,7 +20,7 @@ __global__ void vectorAdd(const int* a, const int* b, int* c, int N){
 }
 
 int main(){
-    const int N = 1000000;
+    const int N = 10000000;
     std::vector<int> a(N);
     std::vector<int> b(N);
     std::vector<int> cpuResult(N);
