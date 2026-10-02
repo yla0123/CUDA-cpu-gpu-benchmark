@@ -138,26 +138,6 @@ cudaDeviceSynchronize
 
 Although these operations are necessary, repeatedly allocating memory and transferring data can become expensive compared with the actual computation.
 
-A more realistic GPU workflow would often use:
-
-```text
-allocate GPU memory once
-        ↓
-copy input data
-        ↓
-kernel 1
-        ↓
-kernel 2
-        ↓
-kernel 3
-        ↓
-copy final result
-        ↓
-free GPU memory
-```
-
-rather than allocating, transferring, and freeing memory for every individual operation.
-
 ### Nsight Systems Conclusion
 
 The most important result from Nsight Systems is:
@@ -216,15 +196,6 @@ SM count:          20
 
 The total thread count is slightly larger than the number of vector elements because the number of blocks is calculated using ceiling division.
 
-The kernel protects the extra threads using:
-
-```cpp
-if (i < N)
-{
-    c[i] = a[i] + b[i];
-}
-```
-
 ### Kernel Performance
 
 Representative Nsight Compute measurements were:
@@ -240,26 +211,6 @@ Representative Nsight Compute measurements were:
 The measured kernel duration agrees well with the normal benchmark measurements, providing additional confidence that the CUDA-event timing is reasonable.
 
 ### Compute vs Memory Utilization
-
-The kernel performs:
-
-```cpp
-c[i] = a[i] + b[i];
-```
-
-For each output element, it approximately performs:
-
-```text
-read a[i]
-+
-read b[i]
-+
-one addition
-+
-write c[i]
-```
-
-There is therefore very little computation relative to the amount of memory accessed.
 
 Nsight Compute reported approximately:
 
@@ -333,26 +284,6 @@ The complete GPU implementation is slower because a large amount of data must be
 
 The profiling results suggest that further optimization of the `vectorAdd` kernel itself would have limited impact on total application performance.
 
-For example, even if the kernel execution time were reduced from:
-
-```text
-0.8 ms
-```
-
-to:
-
-```text
-0.4 ms
-```
-
-the application would still spend approximately:
-
-```text
-16.5 ms
-```
-
-performing host-device memory transfers.
-
 More meaningful optimization directions would therefore include:
 
 - keeping data resident on the GPU across multiple kernels
@@ -363,37 +294,3 @@ More meaningful optimization directions would therefore include:
 - experimenting with pinned host memory
 - using asynchronous memory transfers
 - using CUDA streams to overlap communication and computation where appropriate
-
----
-
-## Main Takeaway
-
-Nsight Systems and Nsight Compute answer complementary performance questions:
-
-```text
-Nsight Systems
-      ↓
-Where does the application spend its time?
-
-Nsight Compute
-      ↓
-Why does the kernel behave the way it does?
-```
-
-For this vector-addition benchmark:
-
-```text
-CPU calculation:            ~4.81 ms
-
-GPU calculation only:       ~0.8–0.9 ms
-Host-device transfers:     ~16.5 ms
-GPU end-to-end execution:  ~22.71 ms
-```
-
-The GPU performs the actual arithmetic much faster than the CPU, but vector addition has too little computation relative to the required data movement for this implementation to achieve an end-to-end speedup.
-
-The main performance bottleneck is therefore **data movement rather than kernel computation**.
-
-This profiling exercise demonstrates an important CUDA optimization principle:
-
-> Measure the complete application, identify the real bottleneck, and optimize that bottleneck rather than assuming that the kernel itself is the problem.
